@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AV-ASOC — Detect what the human ear cannot.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#050507;--s:#0B0C10;--e:#111219;--t:#F5F5F7;--t2:#9A9CA5;--mu:#646671;--a:#7C6CFF;--a2:#6F8CFF;--hu:#70D6B0;--sy:#9B7CFF;--wa:#F1B86A;--cr:#E96D7A;--ln:rgba(255,255,255,.08);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:inherit}html{scroll-behavior:smooth;scroll-padding-top:env(safe-area-inset-top,0px);height:auto}
+body{margin:0;background:var(--bg);color:var(--t);font:400 16px/1.6 Geist,Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.mono{font-family:"Geist Mono",ui-monospace,monospace}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--a2);outline-offset:3px;border-radius:6px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+section{padding:120px 0;border-top:1px solid var(--ln)}
+h1,h2,h3{margin:0;font-weight:500;letter-spacing:-.03em;line-height:1.05}
+h1{font-size:clamp(44px,8vw,104px);font-weight:300}
+h2{font-size:clamp(32px,5vw,60px);font-weight:300;max-width:16ch}
+h3{font-size:18px;letter-spacing:-.01em;line-height:1.3}
+p{margin:0;color:var(--t2)}
+.lead{font-size:clamp(17px,2vw,21px);max-width:52ch;margin-top:24px}
+nav{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:16px 24px;background:linear-gradient(var(--bg),transparent)}
+nav b{font-weight:600;letter-spacing:.02em}nav a{text-decoration:none;font-size:14px;color:var(--t2);margin-left:20px}nav a:hover{color:var(--t)}
+.btn{display:inline-flex;align-items:center;min-height:48px;padding:0 24px;border-radius:999px;font:500 15px Geist,sans-serif;text-decoration:none;border:1px solid var(--ln);background:none;color:var(--t);cursor:pointer;transition:background .2s,border-color .2s}
+.btn.p{background:var(--a);border-color:var(--a)}.btn.p:hover{background:#8d7fff}.btn:hover{border-color:rgba(255,255,255,.3)}
+.row{display:flex;gap:12px;flex-wrap:wrap;margin-top:40px}
+#hero{min-height:100svh;padding:0;border:0;position:relative;display:flex;align-items:flex-end;overflow:hidden}
+#hero canvas{position:absolute;inset:0;width:100%;height:100%}
+#hero .wrap{position:relative;padding-bottom:12vh;padding-top:120px;background:none}
+#hero::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,var(--bg) 8%,transparent 55%);pointer-events:none}
+#hero .wrap{z-index:2}
+.big{font-size:clamp(28px,4.4vw,56px);font-weight:300;letter-spacing:-.025em;line-height:1.12;color:var(--t);max-width:24ch}
+.grid5{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:0;margin-top:64px;border-top:1px solid var(--ln)}
+.grid5>div{padding:24px 20px 0 0}.grid5 p{font-size:14px;margin-top:8px}
+.panel{background:var(--s);border:1px solid var(--ln);border-radius:20px;padding:20px;margin-top:56px}
+canvas.c{display:block;width:100%;border-radius:10px;background:var(--bg)}
+.lbl{font-size:12px;color:var(--mu);margin:14px 0 6px}
+.tag{display:inline-block;font-size:12px;padding:3px 10px;border:1px solid var(--wa);color:var(--wa);border-radius:999px}
+.steps{display:flex;flex-wrap:wrap;gap:8px;margin-top:56px}
+.steps button{font:400 14px Geist,sans-serif;color:var(--t2);background:var(--s);border:1px solid var(--ln);border-radius:999px;padding:12px 18px;min-height:44px;cursor:pointer}
+.steps button[aria-selected=true]{color:var(--t);border-color:var(--a);background:var(--e)}
+#stepbox{margin-top:20px;padding:28px;background:var(--s);border:1px solid var(--ln);border-radius:20px;min-height:130px}
+#stepbox h3{margin-bottom:8px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:820px){.two{grid-template-columns:1fr}section{padding:84px 0}}
+.rd{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.rd div{font-size:12px;color:var(--mu)}.rd b{display:block;font:500 20px "Geist Mono",monospace;color:var(--t)}
+.dz{display:block;border:1px dashed rgba(255,255,255,.2);border-radius:14px;padding:32px 16px;text-align:center;cursor:pointer;color:var(--t2)}
+.dz:hover,.dz.on{border-color:var(--a2);color:var(--t)}
+.win{display:grid;grid-template-columns:64px 1fr 56px;gap:10px;align-items:center;width:100%;text-align:left;font:400 14px "Geist Mono",monospace;color:var(--t2);background:none;border:0;border-bottom:1px solid var(--ln);padding:12px 4px;min-height:44px;cursor:pointer}
+.win[aria-pressed=true]{color:var(--t);background:var(--e)}
+.strip{display:flex;height:10px;gap:3px;margin:20px 0}.strip i{flex:1;border-radius:3px}
+.fc{margin-top:10px;font-size:13px}.fc span{display:flex;justify-content:space-between}.fc u{display:block;height:4px;background:var(--a);border-radius:2px;margin:4px 0 10px;text-decoration:none}
+.dsa{list-style:none;margin:56px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;background:var(--ln);border:1px solid var(--ln);border-radius:20px;overflow:hidden}
+.dsa li{background:var(--bg);padding:24px}.dsa p{font-size:14px;margin-top:6px}
+.lim{columns:2;column-gap:48px;margin-top:56px;padding:0;list-style:none}.lim li{break-inside:avoid;padding:16px 0;border-top:1px solid var(--ln)}.lim p{font-size:14px;margin-top:4px}
+@media(max-width:700px){.lim{columns:1}}
+footer{padding:48px 0;border-top:1px solid var(--ln);font-size:13px;color:var(--mu)}
+#cta{text-align:left}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+.rv{opacity:0;transform:translateY(48px) scale(.985);transition:opacity 1.1s cubic-bezier(.16,1,.3,1),transform 1.1s cubic-bezier(.16,1,.3,1)}.rv.in{opacity:1;transform:none}
+#hero h1,#hero .lead,#hero .row{animation:up 1.4s cubic-bezier(.16,1,.3,1) both}#hero .lead{animation-delay:.15s}#hero .row{animation-delay:.3s}@keyframes up{from{opacity:0;transform:translateY(36px)}}
+#hero .wrap{will-change:transform,opacity}
+.lit{font-size:clamp(24px,3.6vw,44px);font-weight:300;line-height:1.25;letter-spacing:-.02em;color:var(--t);max-width:30ch;margin:48px 0 0}.lit span{opacity:.18}
+.defs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:32px 28px;margin:64px 0 0}.defs dt{font-weight:500;color:var(--t);margin-bottom:6px}.defs dd{margin:0;font-size:14px;color:var(--t2)}
+.pin{height:480vh}.stick{position:sticky;top:0;height:100svh;display:flex;align-items:center}.stick .steps{margin-top:32px}
+#stepbox .mono{font-size:12px;color:var(--mu);margin-bottom:12px}#stepbox p{max-width:60ch}#stepbox{animation:fade .5s cubic-bezier(.16,1,.3,1)}@keyframes fade{from{opacity:.2;transform:translateY(10px)}}
+@media(prefers-reduced-motion:reduce){.rv{opacity:1;transform:none}#hero h1,#hero .lead,#hero .row,#stepbox{animation:none}}
+#v-analyze h1{font-size:clamp(36px,6vw,64px);font-weight:300;letter-spacing:-.03em;line-height:1.05;margin:48px 0 16px}#v-analyze h2{font-size:20px;font-weight:500;letter-spacing:-.01em;margin:0 0 12px}#v-analyze .tabs{display:flex;gap:8px;margin:40px 0 16px}#v-analyze .tabs button,#v-analyze .btn{font:500 14px Geist,sans-serif;min-height:44px;padding:0 20px;border-radius:999px;border:1px solid var(--ln);background:var(--s);color:var(--t2);cursor:pointer;transition:background .2s,border-color .2s,color .2s}#v-analyze .tabs button[aria-selected=true]{color:var(--t);border-color:var(--a);background:var(--e)}#v-analyze .btn:hover{border-color:rgba(255,255,255,.3);color:var(--t)}#v-analyze .btn.p{background:var(--a);border-color:var(--a);color:var(--t)}#v-analyze .btn.p:hover{background:#8d7fff}#v-analyze .btn:disabled{opacity:.4;cursor:not-allowed}#v-analyze .card{background:var(--s);border:1px solid var(--ln);border-radius:20px;padding:24px;margin-bottom:16px}#v-analyze .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px}#v-analyze select,#v-analyze input[type=range]{font:14px Geist,sans-serif;color:var(--t);background:var(--e);border:1px solid var(--ln);border-radius:10px;min-height:44px;padding:0 10px}#v-analyze input[type=range]{padding:0;accent-color:var(--a);width:110px;background:none;border:0}#v-analyze .chip{font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--ln);color:var(--t2)}#v-analyze .chip.ok{color:var(--hu);border-color:var(--hu)}#v-analyze .chip.bad{color:var(--cr);border-color:var(--cr)}#v-analyze canvas{display:block;width:100%;background:var(--bg);border-radius:12px;margin-top:16px}#v-analyze #wf{touch-action:none;cursor:crosshair}#v-analyze .rd{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}#v-analyze .rd div{font-size:12px;color:var(--mu)}#v-analyze .rd b{display:block;font:500 20px "Geist Mono",monospace;color:var(--t)}#v-analyze .dz{display:block;border:1px dashed rgba(255,255,255,.2);border-radius:14px;padding:44px 16px;text-align:center;cursor:pointer;color:var(--t2)}#v-analyze .dz:hover,#v-analyze .dz.on{border-color:var(--a2);color:var(--t)}#v-analyze #ed{animation:in .6s cubic-bezier(.16,1,.3,1)}@keyframes in{from{opacity:0;transform:translateY(24px)}}#v-analyze label.k{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--t2);min-height:44px}#v-analyze .tag{display:inline-block;font-size:12px;padding:3px 10px;border:1px solid var(--wa);color:var(--wa);border-radius:999px;margin-left:8px}@media(max-width:600px){#v-analyze .rd{grid-template-columns:repeat(2,1fr)}}@media(prefers-reduced-motion:reduce){}
+#v-analyze .aw{max-width:960px;margin:0 auto;padding:110px 24px 96px}
+#v-auth .au{max-width:420px;margin:0 auto;padding:130px 24px 96px}
+#v-auth h1{font-size:clamp(32px,6vw,48px);font-weight:300;margin:28px 0 8px}
+#v-auth .f{margin-top:18px}#v-auth label{display:block;font-size:13px;color:var(--t2);margin-bottom:6px}
+#v-auth input{width:100%;min-height:48px;font:16px Geist,Inter,sans-serif;color:var(--t);background:var(--s);border:1px solid var(--ln);border-radius:12px;padding:0 14px}
+#v-auth input[aria-invalid=true]{border-color:var(--cr)}#v-auth .er{color:var(--cr);font-size:13px}
+#v-auth .btn{width:100%;justify-content:center;margin-top:12px}#v-auth .btn.p{margin-top:24px}.btn:disabled{opacity:.4;cursor:not-allowed}
+#v-auth small{display:block;color:var(--mu);font-size:12px;margin-top:8px}
+#v-auth .lk{background:none;border:0;color:var(--a2);font:14px Geist,sans-serif;cursor:pointer;padding:12px 0;min-height:44px}#v-auth a.lk{display:inline-block;text-decoration:none}
+#wv{display:flex;align-items:center;gap:3px;height:48px}#wv i{flex:1;background:var(--a);opacity:.5;border-radius:2px}
+
+#v-history .aw,#v-result .aw{max-width:960px;margin:0 auto;padding:110px 24px 96px}
+#v-history h1,#v-result h1{font-size:clamp(32px,5vw,52px);font-weight:300;margin:16px 0 8px}
+#v-history input,#v-history select,#v-result input{font:14px Geist,sans-serif;color:var(--t);background:var(--e);border:1px solid var(--ln);border-radius:10px;min-height:44px;padding:0 12px}
+.hrow{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--ln)}.hrow a{flex:1;display:grid;grid-template-columns:1fr 100px 70px 70px;gap:10px;padding:14px 4px;text-decoration:none;font-size:14px;min-height:44px;align-items:center}
+.hrow a span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media(max-width:640px){.hrow a{grid-template-columns:1fr 90px}.hrow a span:nth-child(n+3){display:none}}
+.lab{font-weight:500}.lab.human{color:var(--hu)}.lab.synthetic{color:var(--sy)}.lab.uncertain{color:var(--wa)}.lab.failed{color:var(--cr)}
+.sec{margin-top:24px;padding:20px;background:var(--s);border:1px solid var(--ln);border-radius:16px}.sec h2{font-size:17px;font-weight:500;margin:0 0 10px;max-width:none;letter-spacing:-.01em}
+.big2{font-size:clamp(30px,5vw,48px);font-weight:300;letter-spacing:-.02em;line-height:1.1}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-top:14px}.kv div{font-size:12px;color:var(--mu)}.kv b{display:block;font:500 18px "Geist Mono",monospace;color:var(--t)}
+.bar2{height:6px;background:var(--bg);border-radius:3px;margin:4px 0 10px}.bar2 i{display:block;height:100%;border-radius:3px}
+.stg{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}.stg span{font-size:13px;padding:6px 12px;border:1px solid var(--ln);border-radius:999px;color:var(--mu)}.stg .on{color:var(--t);border-color:var(--a)}.stg .dn{color:var(--t2)}
+#v-result canvas{display:block;width:100%;background:var(--bg);border-radius:10px;margin-top:10px}#v-result audio{width:100%;margin-top:12px}
+#v-result .win[aria-pressed=true]{background:var(--e);color:var(--t)}.mini{font:13px "Geist Mono",monospace;color:var(--t2)}.err{color:var(--cr)}
+nav #wn{margin-left:20px;font-size:13px;color:var(--t2)}nav a[hidden],nav span[hidden]{display:none}
+@media(max-width:640px){nav .nl{display:none}}
+</style></head><body>
+<nav aria-label="Primary"><a href="#/" style="margin:0;color:var(--t);font-weight:600;letter-spacing:.02em">AV-ASOC</a><span><a class="nl" href="#/" data-to="pipe">How it works</a><a href="#/analyze">Analyzer</a><a class="nl" href="#/" data-to="tech">Technology</a><a class="nl" href="#/" data-to="limits">Limitations</a><a href="#/history" id="hi" hidden>History</a><a href="#/login" id="si">Sign in</a><span id="wn" class="mono" hidden></span><a href="#/" id="so" hidden>Sign out</a></span></nav>
+<main id="v-home">
+<header id="hero"><canvas id="hc" aria-hidden="true"></canvas>
+<div class="wrap">
+<h1>Detect what the<br>human ear cannot.</h1>
+<p class="lead">AI-driven analysis for deepfake voice, synthetic speech, replayed audio, and voice spoofing.</p>
+<div class="row"><a class="btn p" href="#/analyze">Analyze Audio</a><a class="btn" href="#/" data-to="problem">Explore AV-ASOC</a></div>
+</div></header>
+
+<section id="problem"><div class="wrap">
+<p class="big">A voice can sound real without being real.</p>
+<p class="lit">Voice cloning rebuilds a person’s timbre from seconds of speech. Text-to-speech systems generate fluent audio from nothing. Voice conversion turns one speaker into another. Replay attacks play a genuine recording back through a speaker. Each leaves different traces, and none of them announce themselves to a listener.</p>
+<dl class="defs"><div><dt>Voice cloning</dt><dd>A model learns a target speaker’s voice and speaks new sentences in it.</dd></div><div><dt>Synthetic speech</dt><dd>Text-to-speech output with no human speaker behind it.</dd></div><div><dt>Voice conversion</dt><dd>A real performance is re-voiced so it sounds like someone else.</dd></div><div><dt>Replay</dt><dd>A genuine recording is played into a microphone, adding room and speaker traces.</dd></div><div><dt>Manipulated audio</dt><dd>Real speech edited, spliced or processed to change its meaning.</dd></div></dl>
+</div></section>
+
+<section><div class="wrap">
+<h2>One signal. Multiple layers of evidence.</h2>
+<div class="grid5">
+<div><h3>Audio ingestion</h3><p>Uploaded files and live microphone streams enter the same pipeline.</p></div>
+<div><h3>Signal analysis</h3><p>Normalization, windowing and acoustic features.</p></div>
+<div><h3>AI inference</h3><p>An anti-spoofing model scores every window.</p></div>
+<div><h3>Context analysis</h3><p>Transcript and keyword indicators as supporting evidence.</p></div>
+<div><h3>Evidence</h3><p>Segments, scores and timeline an analyst can inspect.</p></div>
+</div></div></section>
+
+<section><div class="wrap">
+<h2>See the signal the way the model does.</h2>
+<p class="lead">Waveform, spectrogram, pitch and energy describe the same moment of speech from different angles.</p>
+<p class="lead" style="margin-top:20px">The model reads frequency structure over time. Smoothness in the spectrogram, unnatural pitch micro-variation and missing high-band detail are cues, never verdicts on their own.</p><div class="panel" style="margin-top:32px"><span class="tag">ILLUSTRATIVE — generated signal, not a real recording</span>
+<div class="lbl mono">Waveform</div><canvas class="c" id="vw" height="90"></canvas>
+<div class="lbl mono">Spectrogram · frequency over time</div><canvas class="c" id="vs" height="150"></canvas>
+<div class="two"><div><div class="lbl mono">Pitch (Hz)</div><canvas class="c" id="vp" height="70"></canvas></div><div><div class="lbl mono">Energy</div><canvas class="c" id="ve" height="70"></canvas></div></div>
+</div></div></section>
+
+<section id="pipe" style="padding:0"><div class="pin" id="pin"><div class="stick"><div class="wrap">
+<h2>From raw audio to a scored result.</h2>
+<div class="steps" role="tablist" aria-label="Detection pipeline" id="steps"></div>
+<div id="stepbox" role="tabpanel" aria-live="polite"></div>
+</div></div></div></section>
+
+<section><div class="wrap">
+<h2>Bring the audio. Live or recorded.</h2>
+<p class="lead">The analyzer is its own workspace, built for working with the signal rather than reading about it.</p>
+<dl class="defs"><div><dt>Live microphone</dt><dd>Check permission, pick an input device and record with a live waveform, level, pitch and speech activity.</dd></div><div><dt>Upload</dt><dd>Drop WAV, MP3, M4A or FLAC. Files are decoded in your browser.</dd></div><div><dt>Playback</dt><dd>Play, pause, seek, change speed, loop a region and navigate by keyboard.</dd></div><div><dt>Crop</dt><dd>Select the part that matters and trim to it before analysis.</dd></div></dl>
+<div class="row"><a class="btn p" href="#/analyze">Open the analyzer</a></div>
+</div></section>
+
+<section><div class="wrap">
+<h2>The result is only the beginning.</h2>
+<p class="lead">Every verdict comes with the segment, score and features behind it, so an analyst can disagree with the model.</p>
+<div class="panel two" style="grid-template-columns:1.1fr 1fr"><div>
+<span class="tag">ILLUSTRATIVE EXAMPLE</span>
+<div class="strip" id="strip" style="margin-top:20px"></div><div id="wins" role="group" aria-label="Sliding windows"></div></div>
+<div id="evd"></div></div>
+</div></section>
+
+<section><div class="wrap">
+<h2>Data structures that do the work.</h2>
+<p class="lead">Each one has a job in the pipeline.</p>
+<ul class="dsa">
+<li><h3>Sliding window</h3><p>Cuts audio into overlapping segments for scoring.</p></li>
+<li><h3>Queue / deque</h3><p>Buffers incoming live chunks in order.</p></li>
+<li><h3>Priority queue</h3><p>Surfaces the highest-priority alerts first.</p></li>
+<li><h3>Trie</h3><p>Finds keywords in the transcript as it grows.</p></li>
+<li><h3>String matching</h3><p>Detects multi-word patterns in context.</p></li>
+<li><h3>Hash map</h3><p>Looks up sessions, models and metadata in constant time.</p></li>
+<li><h3>Sorting</h3><p>Orders history and timeline events.</p></li>
+<li><h3>Binary search</h3><p>Maps a timestamp to its window instantly.</p></li>
+</ul></div></section>
+
+<section id="tech"><div class="wrap">
+<h2>Built on open, modular parts.</h2>
+<dl class="defs"><div><dt>FastAPI</dt><dd>Upload, analysis, results and history endpoints, with typed validation.</dd></div><div><dt>PyTorch</dt><dd>Hosts anti-spoofing models such as AASIST or ResNet-style networks, where a trained model is supplied.</dd></div><div><dt>Web Audio API</dt><dd>Captures and visualizes microphone audio in the browser.</dd></div><div><dt>WebSocket</dt><dd>Streams live audio chunks up and window results back.</dd></div><div><dt>Speech-to-text</dt><dd>Produces the timestamped transcript used for context analysis.</dd></div><div><dt>Detection providers</dt><dd>Detection models plug in through one interface, so the app never depends on a single model.</dd></div></dl>
+</div></section>
+
+<section id="limits"><div class="wrap">
+<h2>What AV-ASOC cannot tell you.</h2>
+<ul class="lim">
+<li><h3>Model uncertainty</h3><p>Scores are probabilities, not proof.</p></li>
+<li><h3>Unknown generators</h3><p>New synthesis methods may not resemble training data.</p></li>
+<li><h3>Noise and compression</h3><p>Phone codecs and background noise can mask or mimic artifacts.</p></li>
+<li><h3>Short samples</h3><p>A few seconds carry little evidence.</p></li>
+<li><h3>False positives</h3><p>Genuine speech can be flagged.</p></li>
+<li><h3>False negatives</h3><p>Convincing fakes can pass.</p></li>
+</ul></div></section>
+
+<section id="cta"><div class="wrap">
+<h2>Give the signal a second look.</h2>
+<div class="row"><a class="btn p" href="#/analyze">Analyze Audio</a><a class="btn" href="#/" data-to="tech">Explore the Technology</a></div>
+</div></section>
+</main>
+<div id="v-analyze" hidden><div class="aw">
+<h1>Bring the audio.</h1>
+<p>Record or upload audio, trim it to the part that matters, then send it for analysis. Audio stays in this tab.</p>
+<div class="tabs" role="tablist"><button role="tab" id="tm" aria-selected="true">Microphone</button><button role="tab" id="tu" aria-selected="false">Upload</button></div>
+
+<section class="card" id="pm" aria-label="Microphone">
+<h2>Live microphone</h2>
+<div class="row" style="margin-top:0"><span class="chip" id="perm" role="status">Checking permission…</span>
+<button class="btn" id="allow">Allow microphone</button>
+<select id="dev" aria-label="Input device"><option>Default input</option></select></div>
+<canvas id="lc" height="110" aria-label="Live waveform"></canvas>
+<div class="rd" role="status"><div><b id="rl">–</b>level dB</div><div><b id="rp">–</b>pitch Hz</div><div><b id="rs">–</b>speech</div><div><b id="rt">0:00</b>time</div></div>
+<div class="row"><button class="btn p" id="rec">Start recording</button></div>
+<p id="mm" role="status" style="font-size:13px;margin-top:12px"></p>
+<div class="row"><button class="btn" id="lv_b">Start live analysis</button><span id="lv_s" class="mono" style="font-size:13px;color:var(--t2)"></span></div><div id="lv_o" class="mono" style="font-size:13px;margin-top:8px"></div>
+</section>
+
+<section class="card" id="pu" aria-label="Upload" hidden>
+<h2>Upload audio</h2>
+<label class="dz" id="dz">Drop WAV, MP3, M4A or FLAC here, or choose a file<input type="file" id="file" accept="audio/*" hidden></label>
+<p id="um" role="status" style="font-size:13px;margin-top:12px"></p>
+</section>
+
+<section class="card" id="ed" aria-label="Audio editor" hidden>
+<h2><span id="fn">Audio</span></h2>
+<p class="mono" id="meta" style="font-size:13px"></p>
+<canvas id="wf" height="140" tabindex="0" aria-label="Waveform. Space plays or pauses. Arrow keys seek. Brackets set selection start and end."></canvas>
+<div class="row">
+<button class="btn p" id="pp">Play</button><button class="btn" id="st">Stop</button><button class="btn" id="b5" aria-label="Back 5 seconds">−5s</button><button class="btn" id="f5" aria-label="Forward 5 seconds">+5s</button>
+<select id="rate" aria-label="Playback speed"><option>0.5</option><option>0.75</option><option selected>1</option><option>1.25</option><option>1.5</option><option>2</option></select>
+<input type="range" id="vol" min="0" max="1" step=".05" value="1" aria-label="Volume">
+<span class="mono" id="time" style="font-size:13px;color:var(--t2)"></span></div>
+<h2 style="margin-top:28px">Crop</h2>
+<p id="selr" style="font-size:14px">Drag on the waveform to select a region. Drag the edges to adjust.</p>
+<div class="row" style="margin-top:12px">
+<button class="btn" id="ps" disabled>Play selection</button><label class="k"><input type="checkbox" id="loop"> Loop selection</label>
+<button class="btn" id="cr" disabled>Crop to selection</button><button class="btn" id="cl" disabled>Clear selection</button><button class="btn" id="rs2" disabled>Reset to original</button></div>
+<div class="row" style="margin-top:28px"><button class="btn p" id="go">Run analysis</button></div>
+<p id="note" role="status" style="font-size:13px;margin-top:12px"></p>
+</section>
+</div></div>
+<div id="v-history" hidden><div class="aw"><h1>History</h1><p>Every analysis you have run. Open one to see its evidence.</p>
+<div class="row"><input id="h_q" type="search" placeholder="Search file name" aria-label="Search file name"><select id="h_l" aria-label="Filter by result"><option value="">All results</option><option value="human">Human</option><option value="synthetic">Synthetic</option><option value="uncertain">Uncertain</option></select><select id="h_s" aria-label="Sort"><option value="created_at">Newest</option><option value="confidence">Confidence</option><option value="risk_score">Risk</option><option value="duration">Duration</option></select></div>
+<div id="h_list" style="margin-top:16px"></div><p id="h_m" role="status" style="margin-top:12px"></p></div></div>
+<div id="v-result" hidden><div class="aw"><a class="lk" href="#/history" style="color:var(--a2);text-decoration:none">← History</a><h1 id="r_t">Analysis</h1><p id="r_m" role="status"></p><div id="r_prog" class="stg"></div><div id="r_body"></div></div></div>
+<div id="v-auth" hidden><div class="au"><div id="wv" aria-hidden="true"></div>
+<h1 id="at">Welcome to AV-ASOC.</h1>
+<form id="a_f" novalidate>
+<div class="f" id="f_n" hidden><label for="a_n">Full name</label><input id="a_n" autocomplete="name" aria-describedby="x_n"><span class="er" id="x_n"></span></div>
+<div class="f" id="f_e"><label for="a_e">Email</label><input id="a_e" type="email" autocomplete="email" aria-describedby="x_e"><span class="er" id="x_e"></span></div>
+<div class="f"><label for="a_p">Password</label><input id="a_p" type="password" autocomplete="current-password" aria-describedby="x_p"><span class="er" id="x_p"></span></div>
+<div class="f" id="f_c" hidden><label for="a_c">Confirm password</label><input id="a_c" type="password" autocomplete="new-password" aria-describedby="x_c"><span class="er" id="x_c"></span></div>
+<button class="btn p" type="submit" id="a_b">Sign In</button></form>
+<p role="status" aria-live="polite" id="a_m" style="font-size:14px;margin-top:12px"></p>
+<button class="lk" id="a_fp" type="button">Forgot password</button><br><a class="lk" id="a_w" href="#/signup">New here? Create account</a>
+<small>Server: <span id="a_api" class="mono"></span> <button class="lk" id="a_ch" type="button" style="padding:0;min-height:0">change</button></small>
+</div></div>
+<footer><div class="wrap">AV-ASOC — AI-Driven Deepfake Voice &amp; Audio Anti-Spoofing Operation Centre. Results are probabilistic.</div></footer>
+<script>document.body.dataset.v=['analyze','login','signup'].includes(location.hash.slice(2))?(location.hash.slice(2)=='analyze'?'analyze':'auth'):'home'</script>
+<script>(function(){
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $=id=>document.getElementById(id);
+function fit(c){const r=devicePixelRatio||1,w=c.clientWidth,h=c.getAttribute('height')?+c.getAttribute('height'):c.clientHeight;if(c.id=='hc'){c.width=c.clientWidth*r;c.height=c.clientHeight*r}else{c.width=w*r;c.height=h*r;c.style.height=h+'px'}return[c.width,c.height]}
+// synthetic voiced signal (illustrative)
+const env=t=>Math.max(0,Math.sin(t*1.7)*.6+Math.sin(t*.63+1)*.4+.15);
+const f0=t=>130+28*Math.sin(t*1.1)+12*Math.sin(t*3.1);
+const samp=t=>env(t)*(Math.sin(t*f0(t)*2*Math.PI*.012)+.5*Math.sin(t*f0(t)*4*Math.PI*.012)+.25*Math.sin(t*f0(t)*6*Math.PI*.012));
+function spec(c,t0,span,alpha){const[w,h]=fit(c),g=c.getContext('2d'),W=Math.min(200,w>>2),H=72,im=g.createImageData(W,H);
+ for(let x=0;x<W;x++){const t=t0+x/W*span,f=f0(t),e=env(t);for(let y=0;y<H;y++){const fr=(1-y/H)*3200;let v=0;for(let k=1;k<=14;k++){const d=(fr-k*f*4)/(30+k*4);v+=Math.exp(-d*d)/(1+k*.18)}v=Math.min(1,v*e*1.3);const i=(y*W+x)*4;im.data[i]=20+v*(124-20);im.data[i+1]=18+v*(108-18)+v*60*v;im.data[i+2]=40+v*215;im.data[i+3]=255*(alpha??1)}}
+ const o=document.createElement('canvas');o.width=W;o.height=H;o.getContext('2d').putImageData(im,0,0);g.imageSmoothingEnabled=true;g.drawImage(o,0,0,w,h)}
+function line(c,fn,t0,span,col,lo,hi){const[w,h]=fit(c),g=c.getContext('2d');g.clearRect(0,0,w,h);g.strokeStyle=col;g.lineWidth=1.5*(devicePixelRatio||1);g.beginPath();
+ for(let x=0;x<w;x++){const v=fn(t0+x/w*span);const y=h-(v-lo)/(hi-lo)*h*.9-h*.05;x?g.lineTo(x,y):g.moveTo(x,y)}g.stroke()}
+function wave(c,t0,span){const[w,h]=fit(c),g=c.getContext('2d');g.clearRect(0,0,w,h);g.fillStyle='#8c7dff';const n=w;for(let x=0;x<n;x++){const t=t0+x/n*span;const a=samp(t*60)*h*.45;g.fillRect(x,h/2-Math.abs(a),1,Math.abs(a)*2+1)}}
+// hero (pre-rendered once, one drawImage per frame)
+const hc=$('hc'),hg=hc.getContext('2d');let off,hw,hh,hv=true;
+function specImg(W,H,span){const w=450,h=60,c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d'),im=g.createImageData(w,h);
+ for(let x=0;x<w;x++){const t=x/w*span,f=f0(t),e=env(t);for(let y=0;y<h;y++){const fr=(1-y/h)*3200;let v=0;for(let k=1;k<=14;k++){const d=(fr-k*f*4)/(30+k*4);v+=Math.exp(-d*d)/(1+k*.18)}v=Math.min(1,v*e*1.3);const i=(y*w+x)*4;im.data[i]=20+v*104;im.data[i+1]=18+v*90+v*v*60;im.data[i+2]=40+v*215;im.data[i+3]=255}}
+ g.putImageData(im,0,0);const o=document.createElement('canvas');o.width=W;o.height=H;const q=o.getContext('2d');q.imageSmoothingEnabled=true;q.drawImage(c,0,0,W,H);return o}
+function heroInit(){const r=Math.min(devicePixelRatio||1,1.5);hw=hc.width=hc.clientWidth*r;hh=hc.height=hc.clientHeight*r;
+ if(!off){const W=1800,H=240,sp=specImg(W,H,30);off=document.createElement('canvas');off.width=W;off.height=H;const g=off.getContext('2d');g.drawImage(sp,0,0);g.fillStyle='rgba(5,5,7,.55)';g.fillRect(0,0,W,H);
+  g.strokeStyle='rgba(155,140,255,.95)';g.lineWidth=2;g.beginPath();for(let x=0;x<W;x++){const y=H*.38+samp(x/W*30*60)*H*.16;x?g.lineTo(x,y):g.moveTo(x,y)}g.stroke()}
+ hdraw(RM?3e4:performance.now(),1)}
+function hdraw(ts,once){if(hv&&!document.hidden){const p=RM?.3:Math.abs(((ts/1000*.022)%2)-1),vw=off.width*.4;hg.drawImage(off,p*(off.width-vw),0,vw,off.height,0,0,hw,hh)}if(!RM&&!once)requestAnimationFrame(hdraw)}
+new IntersectionObserver(e=>hv=e[0].isIntersecting).observe($('hero'));
+heroInit();if(!RM)requestAnimationFrame(hdraw);
+// visualization
+function viz(){wave($('vw'),0,6);spec($('vs'),0,6);line($('vp'),f0,0,6,'#70D6B0',90,180);line($('ve'),env,0,6,'#6F8CFF',0,1.1)}
+let rt;if(document.body.dataset.v=='home')viz();addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{if(document.body.dataset.v=='home'){viz();heroInit()}},200)});
+// pipeline
+const P=[["Audio source","A file or a live microphone stream. Both produce PCM samples for the same pipeline."],["Ingestion","The file is validated for type and size, then decoded. Live audio arrives as chunks over WebSocket."],["Normalization","Audio is resampled to one rate, mixed to mono and level-normalized so the model sees consistent input."],["Sliding window","Audio is cut into overlapping windows. Each window keeps its start time, so any score maps back to a position."],["Feature extraction","Spectral and temporal features are computed per window, such as log-spectrograms and pitch statistics."],["Anti-spoofing model","A trained detection model scores each window as human or synthetic. With no model installed, analysis is refused rather than faked."],["Temporal aggregation","Window scores are combined over time, so one noisy window does not decide the result."],["Context analysis","Transcript keywords and patterns add supporting indicators. They are not proof of intent."],["Risk and confidence","Probabilities, confidence and an aggregated risk score, each with a stated meaning."],["Evidence","Suspicious segments, feature contributions and a timeline, ready for an analyst to review."]];
+const sb=$('steps'),bx=$('stepbox');P.forEach((p,i)=>{const b=document.createElement('button');b.role='tab';b.textContent=p[0];b.onclick=()=>go(i,1);b.onkeydown=e=>{if(e.key=='ArrowRight')go((i+1)%P.length,1);if(e.key=='ArrowLeft')go((i+P.length-1)%P.length,1)};sb.appendChild(b)});
+let cur=-1;function sel(i,f){if(i===cur&&!f)return;cur=i;[...sb.children].forEach((b,j)=>{b.setAttribute('aria-selected',i==j);b.tabIndex=i==j?0:-1});bx.style.animation='none';bx.offsetWidth;bx.style.animation='';bx.innerHTML='<div class="mono">'+(i+1)+' / '+P.length+'</div><h3>'+P[i][0]+'</h3><p>'+P[i][1]+'</p>';if(f)sb.children[i].focus()}sel(0);
+// evidence (illustrative)
+const W=[["00:00","Human",81],["00:02","Human",76],["00:04","Uncertain",54],["00:06","Synthetic",89],["00:08","Synthetic",94]];
+const col={Human:'var(--hu)',Uncertain:'var(--wa)',Synthetic:'var(--sy)'};
+const F=[["Spectral smoothness",.82],["Pitch micro-variation",.64],["High-band energy",.41]];
+const st=$('strip'),ws=$('wins');W.forEach((w,i)=>{const s=document.createElement('i');s.style.background=col[w[1]];s.style.opacity=.35;st.appendChild(s);const b=document.createElement('button');b.className='win';b.innerHTML='<span>'+w[0]+'</span><span>'+w[1]+'</span><span>'+w[2]+'%</span>';b.onclick=()=>ev(i);ws.appendChild(b)});
+function ev(i){const w=W[i];[...ws.children].forEach((b,j)=>b.setAttribute('aria-pressed',i==j));[...st.children].forEach((s,j)=>s.style.opacity=i==j?1:.35);
+ $('evd').innerHTML='<h3>Window at '+w[0]+'</h3><p style="margin-top:6px">Model score: <span class="mono" style="color:var(--t)">'+w[2]+'% '+w[1].toLowerCase()+'</span>. In the app, selecting a window also moves the audio playhead here.</p><div class="fc">'+F.map(f=>'<span><em style="font-style:normal">'+f[0]+'</em><span class="mono">'+(f[1]*(.6+w[2]/250)).toFixed(2)+'</span></span><u style="width:'+Math.round(f[1]*(.6+w[2]/250)*100)+'%"></u>').join('')+'</div><p style="font-size:13px;margin-top:8px">Feature contributions are illustrative.</p>'}
+ev(3);
+// scroll-driven motion (transform/opacity only, one rAF per scroll frame)
+const pin=$('pin'),hi=document.querySelector('#hero .wrap'),lits=[...document.querySelectorAll('.lit')];let tk=false;
+function go(i,f){scrollTo({top:pin.offsetTop+(i+.5)/P.length*(pin.offsetHeight-innerHeight),behavior:RM?'auto':'smooth'});sel(i,f)}
+lits.forEach(el=>el.innerHTML=el.textContent.split(' ').map(w=>'<span>'+w+' </span>').join(''));
+function sc(){tk=false;if(document.body.dataset.v!=='home')return;const H=innerHeight,y=scrollY;
+ if(!RM&&y<H*1.2){const p=Math.min(1,y/H);hi.style.transform='translateY('+(-p*70)+'px) scale('+(1-p*.06)+')';hi.style.opacity=1-p*1.1}
+ lits.forEach(el=>{const r=el.getBoundingClientRect();if(r.bottom<0||r.top>H)return;const p=Math.min(1,Math.max(0,(H*.85-r.top)/(H*.5+r.height))),s=el.children,n=s.length;for(let i=0;i<n;i++)s[i].style.opacity=RM?1:(.18+.82*Math.min(1,Math.max(0,p*n*1.2-i))).toFixed(2)});
+ const r=pin.getBoundingClientRect();if(r.top<=H&&r.bottom>=0){const i=Math.min(P.length-1,Math.max(0,Math.floor(-r.top/(pin.offsetHeight-H)*P.length)));if(i!==cur)sel(i)}}
+addEventListener('scroll',()=>{if(!tk){tk=true;requestAnimationFrame(sc)}},{passive:true});sc();
+if(!RM){const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.1,rootMargin:'0px 0px -8% 0px'});
+ document.querySelectorAll('main section:not(#hero):not(#pipe) :is(h2,.lead,.big,.defs>*,.grid5>div,.dsa li,.lim li,.panel)').forEach(el=>{el.classList.add('rv');el.style.transitionDelay=([...el.parentNode.children].indexOf(el)%5*70)+'ms';io.observe(el)})}
+
+window.avHome=()=>{viz();heroInit();sc()};})();</script>
+<script>(function(){
+const $=id=>document.getElementById(id),RM=matchMedia('(prefers-reduced-motion: reduce)').matches,DPR=Math.min(devicePixelRatio||1,2);
+const fmt=s=>Math.floor(s/60)+':'+(s%60).toFixed(1).padStart(4,'0');
+let ac,gain,buf,orig,sel=null,off=0,playing=false,src,t0=0,rate=1,tok=0,cache,rng=null;
+function ctx(){if(!ac){ac=new(window.AudioContext||webkitAudioContext)();gain=ac.createGain();gain.connect(ac.destination)}if(ac.state=='suspended')ac.resume();return ac}
+// tabs
+function tab(m){$('pm').hidden=!m;$('pu').hidden=m;$('tm').setAttribute('aria-selected',m);$('tu').setAttribute('aria-selected',!m)}
+$('tm').onclick=()=>tab(true);$('tu').onclick=()=>tab(false);
+// editor
+const wf=$('wf'),wg=wf.getContext('2d');
+function sizeWf(){wf.width=wf.clientWidth*DPR;wf.height=140*DPR;cache=null}
+function peaks(){cache=document.createElement('canvas');cache.width=wf.width;cache.height=wf.height;const g=cache.getContext('2d'),d=buf.getChannelData(0),n=wf.width,st=d.length/n,m=wf.height/2;g.fillStyle='#8c7dff';
+ for(let x=0;x<n;x++){let mn=0,mx=0;const a=x*st|0,b=Math.min(d.length,(x+1)*st|0),step=Math.max(1,(b-a)>>6);for(let i=a;i<b;i+=step){const v=d[i];if(v<mn)mn=v;if(v>mx)mx=v}g.fillRect(x,m-mx*m*.9,1,(mx-mn)*m*.9+1)}}
+function pos(){if(!playing)return off;let p=off+(ac.currentTime-t0)*rate;if(src&&src.loop&&sel&&p>=sel[1])p=sel[0]+((p-sel[0])%(sel[1]-sel[0]));return Math.min(p,buf.duration)}
+function draw(){if(!buf)return;if(!cache)peaks();const w=wf.width,h=wf.height,X=t=>t/buf.duration*w;wg.clearRect(0,0,w,h);wg.drawImage(cache,0,0);
+ if(sel){wg.fillStyle='rgba(111,140,255,.18)';wg.fillRect(X(sel[0]),0,X(sel[1])-X(sel[0]),h);wg.fillStyle='#6F8CFF';wg.fillRect(X(sel[0])-DPR,0,3*DPR,h);wg.fillRect(X(sel[1])-DPR,0,3*DPR,h)}
+ const p=pos();wg.fillStyle='#F5F5F7';wg.fillRect(X(p),0,2*DPR,h);$('time').textContent=fmt(p)+' / '+fmt(buf.duration)}
+function loop(){draw();if(playing)requestAnimationFrame(loop)}
+function updSel(){const h=!!sel;$('ps').disabled=$('cr').disabled=$('cl').disabled=!h;$('rs2').disabled=buf===orig;$('selr').textContent=h?'Selection '+fmt(sel[0])+' – '+fmt(sel[1])+' ('+(sel[1]-sel[0]).toFixed(1)+' s)':'Drag on the waveform to select a region. Drag the edges to adjust.'}
+function meta(){$('meta').textContent=fmt(buf.duration)+' · '+buf.sampleRate+' Hz · '+buf.numberOfChannels+' ch'}
+function stopSrc(){tok++;if(src){src.onended=null;try{src.stop()}catch(e){}}playing=false}
+function setPP(){$('pp').textContent=playing?'Pause':'Play'}
+function play(from,to){if(!buf)return;if(playing)off=pos();stopSrc();const a=ctx();src=a.createBufferSource();src.buffer=buf;src.playbackRate.value=rate;src.connect(gain);const my=++tok;
+ let s=from==null?off:from;if(s>=buf.duration-.05)s=0;
+ if($('loop').checked&&sel&&to==null&&from!=null){src.loop=true;src.loopStart=sel[0];src.loopEnd=sel[1]}
+ off=s;t0=a.currentTime;to==null?src.start(0,s):src.start(0,s,to-s);
+ src.onended=()=>{if(my!==tok)return;playing=false;off=to==null?0:s;setPP();draw()};playing=true;setPP();loop()}
+function pause(){off=pos();stopSrc();setPP();draw()}
+function seek(t){off=Math.max(0,Math.min(buf.duration,t));playing?play(off):draw()}
+$('pp').onclick=()=>playing?pause():play();$('st').onclick=()=>{stopSrc();off=0;setPP();draw()};
+$('b5').onclick=()=>seek(pos()-5);$('f5').onclick=()=>seek(pos()+5);
+$('rate').onchange=e=>{const p=buf?pos():0;rate=+e.target.value;if(playing){off=p;play(p)}};
+$('vol').oninput=e=>{ctx();gain.gain.value=+e.target.value};
+$('ps').onclick=()=>sel&&($('loop').checked?play(sel[0]):play(sel[0],sel[1]));
+$('cl').onclick=()=>{sel=null;updSel();draw()};
+$('cr').onclick=()=>{if(!sel)return;const sr=buf.sampleRate,a=Math.floor(sel[0]*sr),b=Math.floor(sel[1]*sr);if(b-a<sr*.1){$('note').textContent='Selection must be at least 0.1 s.';return}stopSrc();setPP();
+ const nb=ctx().createBuffer(buf.numberOfChannels,b-a,sr);for(let c=0;c<buf.numberOfChannels;c++)nb.copyToChannel(buf.getChannelData(c).subarray(a,b),c);buf=nb;sel=null;off=0;cache=null;meta();updSel();draw();$('note').textContent='Cropped. Reset restores the original.'};
+$('rs2').onclick=()=>{stopSrc();setPP();buf=orig;sel=null;off=0;cache=null;meta();updSel();draw();$('note').textContent=''};
+$('go').onclick=()=>window.avSend&&avSend(buf,$('fn').textContent);
+// pointer: select / adjust / seek
+let drag=null;const tOf=e=>{const r=wf.getBoundingClientRect();return Math.min(buf.duration,Math.max(0,(e.clientX-r.left)/r.width*buf.duration))};
+wf.onpointerdown=e=>{if(!buf)return;wf.setPointerCapture(e.pointerId);const t=tOf(e),px=buf.duration/wf.clientWidth*12;drag=sel&&Math.abs(t-sel[0])<px?{m:'a'}:sel&&Math.abs(t-sel[1])<px?{m:'b'}:{m:'n',a:t,x:e.clientX,mv:false}};
+wf.onpointermove=e=>{if(!drag)return;const t=tOf(e);if(drag.m=='a')sel[0]=Math.min(t,sel[1]-.05);else if(drag.m=='b')sel[1]=Math.max(t,sel[0]+.05);else{if(Math.abs(e.clientX-drag.x)>4)drag.mv=true;if(drag.mv)sel=[Math.min(drag.a,t),Math.max(drag.a,t)]}if(!playing)draw();updSel()};
+wf.onpointerup=e=>{if(!drag)return;if(drag.m=='n'&&!drag.mv)seek(tOf(e));if(sel&&sel[1]-sel[0]<.05)sel=null;drag=null;updSel();draw()};
+wf.onkeydown=e=>{if(!buf)return;const k=e.key,s=e.shiftKey?5:1;if(k==' '){e.preventDefault();playing?pause():play()}else if(k=='ArrowLeft'){e.preventDefault();seek(pos()-s)}else if(k=='ArrowRight'){e.preventDefault();seek(pos()+s)}else if(k=='['){const p=pos();sel=[Math.min(p,sel?sel[1]-.05:buf.duration-.05),sel?sel[1]:buf.duration];updSel();draw()}else if(k==']'){const p=pos();sel=[sel?sel[0]:0,Math.max(p,sel?sel[0]+.05:.05)];updSel();draw()}};
+function load(b,name){stopSrc();setPP();orig=buf=b;sel=null;off=0;$('fn').textContent=name;$('note').textContent='';$('ed').hidden=false;sizeWf();meta();updSel();draw();$('ed').scrollIntoView({behavior:RM?'auto':'smooth',block:'nearest'})}
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{sizeLc();if(buf){sizeWf();draw()}},200)});
+// upload
+const dz=$('dz');async function loadFile(f){if(!f)return;if(f.size>50e6){$('um').textContent='File too large for this preview (50 MB max).';return}$('um').textContent='Decoding…';try{load(await ctx().decodeAudioData(await f.arrayBuffer()),f.name);$('um').textContent=''}catch(e){$('um').textContent='This file could not be decoded.'}}
+$('file').onchange=e=>loadFile(e.target.files[0]);['dragover','dragenter'].forEach(n=>dz.addEventListener(n,e=>{e.preventDefault();dz.classList.add('on')}));['dragleave','drop'].forEach(n=>dz.addEventListener(n,e=>{e.preventDefault();dz.classList.remove('on')}));dz.addEventListener('drop',e=>loadFile(e.dataTransfer.files[0]));
+// microphone
+const lc=$('lc'),lg=lc.getContext('2d');function sizeLc(){lc.width=lc.clientWidth*DPR;lc.height=110*DPR}sizeLc();
+const msg=t=>$('mm').textContent=t;
+function setPerm(s){const c=$('perm');c.className='chip '+(s=='granted'?'ok':s=='denied'?'bad':'');c.textContent=s=='granted'?'Microphone allowed':s=='denied'?'Microphone blocked':s=='error'?'No microphone found':'Not yet allowed';$('allow').hidden=s=='granted'}
+(async()=>{try{const p=await navigator.permissions.query({name:'microphone'});setPerm(p.state);p.onchange=()=>setPerm(p.state);if(p.state=='granted')devices()}catch(e){setPerm('prompt')}})();
+async function devices(){try{const d=(await navigator.mediaDevices.enumerateDevices()).filter(x=>x.kind=='audioinput');$('dev').replaceChildren(...(d.length?d.map((x,i)=>new Option(x.label||'Microphone '+(i+1),x.deviceId)):[new Option('No input found','')]))}catch(e){}}
+function micErr(e){const d=e&&e.name=='NotAllowedError';setPerm(d?'denied':'error');msg(d?'Permission was denied. Allow the microphone in your browser’s site settings (or open this page in its own tab if it is embedded), then try again.':'No usable microphone was found.')}
+$('allow').onclick=async()=>{try{(await navigator.mediaDevices.getUserMedia({audio:true})).getTracks().forEach(t=>t.stop());setPerm('granted');await devices();msg('Microphone allowed. Choose an input and start recording.')}catch(e){micErr(e)}};
+let stream,mctx,an,mr,chunks,raf,rt0,fr=0;
+function pitch(b,sr){let rms=0;for(const v of b)rms+=v*v;if(Math.sqrt(rms/b.length)<.01)return 0;let best=0,bl=0;for(let l=sr/400|0;l<sr/70;l++){let s=0;for(let i=0;i<b.length-l;i+=2)s+=b[i]*b[i+l];if(s>best){best=s;bl=l}}return bl?sr/bl:0}
+function mloop(){const b=new Float32Array(an.fftSize);an.getFloatTimeDomainData(b);const w=lc.width,h=lc.height;lg.clearRect(0,0,w,h);lg.strokeStyle='#70D6B0';lg.lineWidth=1.5*DPR;lg.beginPath();for(let x=0;x<w;x+=2){const v=b[x*b.length/w|0];x?lg.lineTo(x,h/2+v*h*.45):lg.moveTo(0,h/2)}lg.stroke();
+ let r=0;for(const v of b)r+=v*v;r=Math.sqrt(r/b.length);$('rl').textContent=(20*Math.log10(r+1e-6)).toFixed(0);$('rs').textContent=r>.02?'yes':'no';if(fr++%4==0){const p=pitch(b,mctx.sampleRate);$('rp').textContent=p?p.toFixed(0):'–'}
+ const s=(Date.now()-rt0)/1000;$('rt').textContent=Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');raf=requestAnimationFrame(mloop)}
+$('rec').onclick=async()=>{if(mr&&mr.state=='recording'){mr.stop();return}
+ try{const id=$('dev').value;stream=await navigator.mediaDevices.getUserMedia({audio:id?{deviceId:{exact:id}}:true})}catch(e){return micErr(e)}
+ setPerm('granted');devices();mctx=new AudioContext();an=mctx.createAnalyser();an.fftSize=2048;mctx.createMediaStreamSource(stream).connect(an);
+ chunks=[];mr=new MediaRecorder(stream);mr.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+ mr.onstop=async()=>{cancelAnimationFrame(raf);stream.getTracks().forEach(t=>t.stop());mctx.close();$('rec').textContent='Start recording';msg('Decoding recording…');
+  try{load(await ctx().decodeAudioData(await new Blob(chunks,{type:mr.mimeType}).arrayBuffer()),'Recording');msg('')}catch(e){msg('The recording could not be decoded in this browser.')}};
+ mr.start();rt0=Date.now();$('rec').textContent='Stop recording';msg('Recording. Audio is processed in this tab only.');mloop()};
+
+window.avAnalyze=()=>{sizeLc();if(buf){sizeWf();draw()}};window.avLeave=()=>{if(playing)pause();if(mr&&mr.state=='recording')mr.stop()};})();</script>
+<script>(function(){
+const $=id=>document.getElementById(id),RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pc=v=>Math.round(v*100)+'%',fmt=s=>Math.floor(s/60)+':'+(s%60).toFixed(1).padStart(4,'0'),LC={human:'var(--hu)',synthetic:'var(--sy)',uncertain:'var(--wa)'};
+const STAGES=["AUDIO RECEIVED","NORMALIZATION","SEGMENTATION","FEATURE EXTRACTION","MODEL INFERENCE","TEMPORAL AGGREGATION","CONTEXT ANALYSIS","RESULT"];
+let API=localStorage.getItem('avasoc.api')||(location.protocol.startsWith('http')?location.origin:'http://127.0.0.1:8000'),TOK=null,ME=null;
+try{TOK=localStorage.getItem('avasoc.token')}catch(e){}
+async function api(path,o={}){const h={};if(TOK)h.Authorization='Bearer '+TOK;let body=o.body;if(o.json){h['Content-Type']='application/json';body=JSON.stringify(o.json)}
+ let r;try{r=await fetch(API+path,{method:o.method||'GET',headers:h,body})}catch(e){throw new Error('Cannot reach the AV-ASOC server at '+API+'.')}
+ if(r.status==401&&TOK&&!o.anon){signOut();location.hash='#/login';throw new Error('Your session expired. Sign in again.')}
+ if(o.raw&&r.ok)return r;const t=await r.text();let j=null;try{j=t?JSON.parse(t):null}catch(e){}
+ if(!r.ok){const d=j&&j.detail;throw new Error(typeof d=='string'?d:Array.isArray(d)?d.map(x=>x.msg).join(' '):'Request failed ('+r.status+').')}return j}
+function setTok(t){TOK=t;try{t?localStorage.setItem('avasoc.token',t):localStorage.removeItem('avasoc.token')}catch(e){}}
+function signOut(){setTok(null);ME=null;nav()}
+function nav(){$('si').hidden=!!ME;$('hi').hidden=$('so').hidden=$('wn').hidden=!ME;if(ME)$('wn').textContent=ME.full_name}
+// ---------- router ----------
+const V={home:$('v-home'),analyze:$('v-analyze'),auth:$('v-auth'),history:$('v-history'),result:$('v-result')};let mode='login',cur=0;
+const wv=$('wv');for(let i=0;i<48;i++){const b=document.createElement('i');b.style.height=(8+Math.abs(Math.sin(i*.45)*Math.sin(i*.13+1))*40)+'px';wv.appendChild(b)}
+function route(){const p=location.hash.slice(2).split('/'),r=p[0];let k=r=='analyze'||r=='history'||r=='result'?r:r=='login'||r=='signup'||r=='reset'?'auth':'home';
+ if((k=='analyze'||k=='history'||k=='result')&&!TOK){location.hash='#/login';return}
+ cur++;document.body.dataset.v=k;for(const x in V)V[x].hidden=x!=k;if(k!='analyze'&&window.avLeave)avLeave();if(k!='analyze')stopLive();
+ if(k=='auth')authMode(r,p[1]);if(k=='home')avHome();if(k=='analyze')avAnalyze();if(k=='history')loadHistory();if(k=='result')openResult(p[1],cur);
+ scrollTo({top:0,behavior:'instant'});document.title='AV-ASOC'}
+addEventListener('hashchange',route);
+document.addEventListener('click',e=>{const a=e.target.closest('[data-to]');if(!a)return;e.preventDefault();const go=()=>$(a.dataset.to).scrollIntoView({behavior:RM?'auto':'smooth'});if(document.body.dataset.v!='home'){location.hash='#/';setTimeout(go,80)}else go()});
+$('so').onclick=e=>{e.preventDefault();signOut();location.hash='#/'};
+// ---------- accounts ----------
+let resetTok=null;const m=t=>$('a_m').textContent=t||'';
+function authMode(r,tok){mode=r=='signup'?'signup':r=='reset'?'reset':'login';resetTok=tok||null;const s=mode=='signup',rs=mode=='reset';
+ $('at').textContent=rs?'Choose a new password.':s?'Create your account.':'Welcome to AV-ASOC.';$('a_b').textContent=rs?'Update password':s?'Create Account':'Sign In';
+ $('f_n').hidden=!s;$('f_c').hidden=!(s||rs);$('f_e').hidden=rs;$('a_fp').hidden=s||rs;$('a_w').hidden=rs;$('a_w').textContent=s?'Already have an account? Sign in':'New here? Create account';$('a_w').href=s?'#/login':'#/signup';
+ $('a_p').autocomplete=mode=='login'?'current-password':'new-password';['n','e','p','c'].forEach(k=>{$('x_'+k).textContent='';$('a_'+k).removeAttribute('aria-invalid')});m('');$('a_api').textContent=API}
+$('a_ch').onclick=()=>{const v=prompt('AV-ASOC server address',API);if(v&&/^https?:\/\//.test(v)){API=v.replace(/\/$/,'');try{localStorage.setItem('avasoc.api',API)}catch(e){}$('a_api').textContent=API}};
+$('a_fp').onclick=async()=>{const em=$('a_e').value.trim();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){$('x_e').textContent='Enter your email first.';$('a_e').focus();return}
+ try{m((await api('/auth/forgot-password',{method:'POST',json:{email:em},anon:1})).detail)}catch(e){m(e.message)}};
+$('a_f').addEventListener('submit',async e=>{e.preventDefault();const s=mode=='signup',rs=mode=='reset',n=$('a_n').value.trim(),em=$('a_e').value.trim(),p=$('a_p').value,c=$('a_c').value;let ok=true;
+ const bad=(k,t)=>{$('a_'+k).setAttribute('aria-invalid',!!t);$('x_'+k).textContent=t||'';if(t&&ok){ok=false;$('a_'+k).focus()}};
+ if(s)bad('n',n?'':'Enter your full name.');if(!rs)bad('e',/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)?'':'Enter a valid email address.');
+ bad('p',p.length>=(mode=='login'?1:8)?'':(mode=='login'?'Enter your password.':'Use at least 8 characters.'));if(s||rs)bad('c',c===p?'':'Passwords do not match.');if(!ok)return;
+ const b=$('a_b'),lbl=b.textContent;b.disabled=true;b.textContent='Working…';m('');
+ try{if(rs){m((await api('/auth/reset-password',{method:'POST',json:{token:resetTok,new_password:p},anon:1})).detail);setTimeout(()=>location.hash='#/login',1500)}
+  else{const j=await api(s?'/auth/signup':'/auth/login',{method:'POST',json:s?{email:em,password:p,full_name:n}:{email:em,password:p},anon:1});setTok(j.access_token);ME=j.profile;nav();$('a_f').reset();location.hash='#/analyze'}}
+ catch(x){m(x.message)}finally{b.disabled=false;b.textContent=lbl}});
+// ---------- send audio for analysis ----------
+function wavBlob(b){const n=b.length,ch=b.numberOfChannels,sr=b.sampleRate,d=new Float32Array(n);for(let c=0;c<ch;c++){const x=b.getChannelData(c);for(let i=0;i<n;i++)d[i]+=x[i]/ch}
+ const buf=new ArrayBuffer(44+n*2),v=new DataView(buf),w=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))};
+ w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
+ for(let i=0;i<n;i++){const t=Math.max(-1,Math.min(1,d[i]));v.setInt16(44+i*2,t<0?t*32768:t*32767,true)}return new Blob([buf],{type:'audio/wav'})}
+window.avSend=async(buf,name)=>{const note=$('note');if(!buf)return;note.textContent='Uploading…';$('go').disabled=true;
+ try{const fd=new FormData();fd.append('file',wavBlob(buf),(name||'recording').replace(/\.[^.]*$/,'').replace(/[^\w.-]+/g,'_')+'.wav');const j=await api('/analyses',{method:'POST',body:fd});note.textContent='';location.hash='#/result/'+j.id}
+ catch(e){note.textContent=e.message}finally{$('go').disabled=false}};
+// ---------- history ----------
+let ht;async function loadHistory(){const l=$('h_list'),msg=$('h_m');msg.textContent='Loading…';
+ try{const q=new URLSearchParams({q:$('h_q').value,sort:$('h_s').value,limit:100});if($('h_l').value)q.set('label',$('h_l').value);const j=await api('/analyses?'+q);
+  msg.textContent=j.items.length?'':'No analyses yet. Run one from the analyzer.';
+  l.innerHTML=j.items.map(r=>`<div class="hrow"><a href="#/result/${esc(r.id)}"><span>${esc(r.filename)}</span><span class="lab ${esc(r.status=='done'?r.label:r.status=='failed'?'failed':'')}">${esc(r.status=='done'?r.label:r.status)}</span><span class="mini">${r.confidence==null?'':'conf '+r.confidence.toFixed(2)}</span><span class="mini">${r.duration?fmt(r.duration):''}</span></a><button class="btn" data-del="${esc(r.id)}" aria-label="Delete ${esc(r.filename)}">Delete</button></div>`).join('')}
+ catch(e){msg.textContent=e.message}}
+['h_q','h_l','h_s'].forEach(i=>$(i).addEventListener('input',()=>{clearTimeout(ht);ht=setTimeout(loadHistory,250)}));
+$('h_list').addEventListener('click',async e=>{const b=e.target.closest('[data-del]');if(!b||!confirm('Delete this analysis and its data?'))return;try{await api('/analyses/'+b.dataset.del,{method:'DELETE'});loadHistory()}catch(x){$('h_m').textContent=x.message}});
+// ---------- result ----------
+let blobURL=null;
+async function openResult(id,tok){const body=$('r_body'),prog=$('r_prog'),msg=$('r_m');body.innerHTML='';msg.textContent='';msg.className='';if(blobURL){URL.revokeObjectURL(blobURL);blobURL=null}
+ $('r_t').textContent='Analysis';
+ while(tok==cur){let v;try{v=await api('/analyses/'+encodeURIComponent(id))}catch(e){prog.innerHTML='';msg.textContent=e.message;msg.className='err';return}
+  $('r_t').textContent=v.filename||'Analysis';
+  if(v.status=='failed'){prog.innerHTML='';msg.textContent='Analysis failed: '+(v.error||'unknown error');msg.className='err';return}
+  if(v.status=='done'){prog.innerHTML='';await renderResult(v,tok);return}
+  const at=Math.max(0,STAGES.indexOf(v.stage));prog.innerHTML=STAGES.map((x,i)=>`<span class="${i<at?'dn':i==at?'on':''}">${x}</span>`).join('');msg.textContent=v.status=='queued'?'Queued…':'Processing…';
+  await new Promise(r=>setTimeout(r,900))}}
+async function renderResult(v,tok){const g=p=>api('/analyses/'+v.id+p).catch(()=>null);
+ const [W,A,E,VP,SRC,TR,CX,WF,SG,TL]=await Promise.all([g('/windows'),g('/alerts'),g('/evidence'),g('/voice-profile'),g('/source'),g('/transcript'),g('/context'),g('/waveform'),g('/spectrogram'),g('/timeline')]);
+ if(tok!=cur)return;let au=null;if(v.audio_retained){try{blobURL=URL.createObjectURL(await(await api('/analyses/'+v.id+'/audio',{raw:true})).blob());au=blobURL}catch(e){}}
+ const s=v.summary||{},p=v.provider||{},bars=o=>Object.entries(o||{}).map(([k,x])=>{const w=Math.min(100,Math.abs(x)*100*3);return`<div class="mini">${esc(k)} <span style="float:right">${x>0?'+':''}${x.toFixed(3)}</span></div><div class="bar2"><i style="width:${w}%;background:${x>0?'var(--sy)':'var(--hu)'}"></i></div>`}).join('');
+ let h=`<div class="sec"><div class="big2 lab ${esc(s.label)}">${esc((s.label||'').toUpperCase())}</div>
+ <div class="kv"><div><b>${pc(s.p_synthetic||0)}</b>synthetic probability</div><div><b>${pc(s.p_human||0)}</b>human probability</div><div><b>${(s.confidence||0).toFixed(2)}</b>confidence</div><div><b>${s.risk_score}/100</b>risk score</div><div><b>${fmt(v.duration||0)}</b>duration</div><div><b>${esc(p.name||'')} ${esc(p.version||'')}</b>model</div></div>
+ <ul style="margin:14px 0 0;padding-left:18px;color:var(--t2)">${(s.caveats||[]).map(c=>`<li>${esc(c)}</li>`).join('')}${p.validated?'<li>The model was evaluated on a held-out split of its own training data, not an independent benchmark.</li>':'<li>This model has not been validated.</li>'}</ul>
+ <div class="row"><button class="btn" id="r_save">Save investigation</button><button class="btn" id="r_del">Delete analysis</button><span id="r_ms" class="mini"></span></div></div>`;
+ h+=`<div class="sec"><h2>Audio</h2>${au?`<audio id="r_au" controls src="${au}"></audio>`:'<p>The original audio was not kept (retention setting or expiry). Results below are still available.</p>'}<canvas id="r_wf" height="110" aria-label="Waveform with window labels"></canvas><canvas id="r_sg" height="140" aria-label="Spectrogram"></canvas></div>`;
+ h+=`<div class="sec"><h2>Sliding windows</h2>${(W||[]).map(w=>`<button class="win" data-t="${w.start_s}" aria-pressed="false"><span>${esc(w.clock)}</span><span class="lab ${esc(w.label)}">${esc(w.label)}${w.no_speech?' (no speech)':''}</span><span>${pc(w.p_synthetic)}</span></button>`).join('')}</div>`;
+ h+=`<div class="sec"><h2>Priority alerts</h2>${(A||[]).length?A.map(a=>`<div class="hrow" style="padding:8px 0"><span class="mini" style="flex:1">P${a.priority} · ${fmt(a.t)} · ${esc(a.signal)} · conf ${a.confidence.toFixed(2)} · <span id="as_${esc(a.id)}">${esc(a.status)}</span></span><button class="btn" data-al="${esc(a.id)}" data-st="acknowledged">Acknowledge</button><button class="btn" data-al="${esc(a.id)}" data-st="dismissed">Dismiss</button></div>`).join(''):'<p>No alerts.</p>'}</div>`;
+ h+=`<div class="sec"><h2>Evidence</h2>${E&&E.evidence.length?E.evidence.map(x=>`<p style="margin-top:12px"><b style="color:var(--t)">Window ${esc(x.clock)}</b> · ${pc(x.p_synthetic)} synthetic</p>${bars(x.band_contribution)}`).join('')+`<p class="mini">${esc(E.note)}</p>`:'<p>No scored windows contained enough speech.</p>'}</div>`;
+ h+=`<div class="sec"><h2>Source</h2>${SRC&&SRC.candidates.length?`<p>Most likely: <b style="color:var(--t)">${esc(SRC.source)}</b></p>`+SRC.candidates.map(c=>`<div class="mini">${esc(c.name)} <span style="float:right">${pc(c.probability)}</span></div><div class="bar2"><i style="width:${c.probability*100}%;background:var(--a)"></i></div>`).join('')+`<p class="mini">${esc(SRC.note)}</p>`:`<p>Source: Unknown. ${esc(SRC&&SRC.reason||'')}</p>`}</div>`;
+ h+=`<div class="sec"><h2>Voice profile</h2><p class="mini">${esc(VP&&VP.note||'No measurements.')}</p><div class="kv">${VP?Object.entries(VP).filter(([k])=>k!='note').map(([k,x])=>`<div><b>${x==null?'n/a':esc(x)}</b>${esc(k.replace(/_/g,' '))}</div>`).join(''):''}</div></div>`;
+ h+=`<div class="sec"><h2>Transcript and context</h2>${TR&&TR.status=='ok'?TR.segments.map(x=>`<button class="win" data-t="${x.start_s}" aria-pressed="false" style="grid-template-columns:64px 1fr"><span>${fmt(x.start_s)}</span><span style="font-family:Geist,sans-serif">${esc(x.text)}</span></button>`).join('')+`<div class="row"><input id="r_kw" placeholder="Keywords, comma separated" aria-label="Keywords" style="flex:1"><button class="btn" id="r_kb">Search</button></div><div id="r_cx">${ctxHtml(CX)}</div>`:`<p>No transcript (${esc(TR&&TR.status||'unavailable')}). Install faster-whisper on the server to enable speech-to-text.</p>`}</div>`;
+ h+=`<div class="sec"><h2>Timeline</h2>${(TL||[]).map(e=>`<div class="mini" style="padding:3px 0">${fmt(e.t)} · ${esc(e.type)} · ${esc(e.text)}</div>`).join('')}</div>`;
+ $('r_body').innerHTML=h;
+ const aud=$('r_au'),wc=$('r_wf'),W2=W||[];let sel=-1;
+ function draw(){const r=devicePixelRatio||1,w=wc.width=wc.clientWidth*r,hh=wc.height=110*r,g=wc.getContext('2d'),pk=WF?WF.peaks:[],dur=v.duration||1;g.fillStyle='#8c7dff';
+  pk.forEach((q,i)=>{const x=i/pk.length*w;g.fillRect(x,hh*.45-q[1]*hh*.4,Math.max(1,w/pk.length),(q[1]-q[0])*hh*.4+1)});
+  W2.forEach(x=>{g.fillStyle=LC[x.label];g.globalAlpha=.9;g.fillRect(x.start_s/dur*w,hh*.92,(x.end_s-x.start_s)/dur*w-1,hh*.06)});g.globalAlpha=1;
+  if(sel>=0){g.fillStyle='rgba(111,140,255,.2)';g.fillRect(W2[sel].start_s/dur*w,0,(W2[sel].end_s-W2[sel].start_s)/dur*w,hh)}
+  if(aud){g.fillStyle='#F5F5F7';g.fillRect(aud.currentTime/dur*w,0,2*r,hh)}}
+ function seek(t){if(aud){aud.currentTime=t;aud.play().catch(()=>{})}let i=-1;W2.forEach((x,j)=>{if(x.start_s<=t)i=j});sel=i;document.querySelectorAll('#r_body .win[data-t]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.t==t));draw()}
+ draw();if(aud){aud.ontimeupdate=draw;aud.onseeked=draw}wc.onclick=e=>{const r=wc.getBoundingClientRect();seek((e.clientX-r.left)/r.width*(v.duration||0))};
+ if(SG){const c=$('r_sg'),g=c.getContext('2d'),d=atob(SG.data_b64),fr=SG.frames,H=SG.freq_bins;c.width=fr;c.height=H;const im=g.createImageData(fr,H);
+  for(let y=0;y<H;y++)for(let x=0;x<fr;x++){const t=d.charCodeAt(y*fr+x)/255,i=(y*fr+x)*4;im.data[i]=20+t*180;im.data[i+1]=18+t*t*150;im.data[i+2]=40+t*215;im.data[i+3]=255}g.putImageData(im,0,0);c.style.height='140px'}
+ $('r_body').onclick=async e=>{const t=e.target.closest('[data-t]');if(t)return seek(+t.dataset.t);const a=e.target.closest('[data-al]');
+  if(a){try{await api('/alerts/'+a.dataset.al,{method:'PATCH',json:{status:a.dataset.st}});$('as_'+a.dataset.al).textContent=a.dataset.st}catch(x){$('r_ms').textContent=x.message}}
+  if(e.target.id=='r_save'){const n=prompt('Name this investigation',v.filename);if(n)try{await api('/saved',{method:'POST',json:{session_id:v.id,title:n,tags:[]}});$('r_ms').textContent='Saved.'}catch(x){$('r_ms').textContent=x.message}}
+  if(e.target.id=='r_del'&&confirm('Delete this analysis and its data?')){try{await api('/analyses/'+v.id,{method:'DELETE'});location.hash='#/history'}catch(x){$('r_ms').textContent=x.message}}
+  if(e.target.id=='r_kb'){const k=$('r_kw').value.split(',').map(x=>x.trim()).filter(Boolean);if(k.length)try{$('r_cx').innerHTML=ctxHtml(await api('/analyses/'+v.id+'/context',{method:'POST',json:{keywords:k}}))}catch(x){$('r_ms').textContent=x.message}}};
+ addEventListener('resize',()=>{if(tok==cur)draw()},{once:true})}
+function ctxHtml(c){const ms=c&&c.matches||[];return (ms.length?ms.map(x=>`<button class="win" data-t="${x.start_s}" aria-pressed="false" style="grid-template-columns:64px 110px 1fr"><span>${fmt(x.start_s)}</span><span class="lab uncertain">${esc(x.keyword)}</span><span style="font-family:Geist,sans-serif">${esc(x.context)}</span></button>`).join(''):'<p style="margin-top:8px">No keyword matches.</p>')+'<p class="mini">Keyword matches are supporting indicators, not proof of intent.</p>'}
+// ---------- live analysis over WebSocket ----------
+let ws=null,lac=null,lst=null;
+function stopLive(){if(ws){try{ws.send('stop')}catch(e){}}if(lac){lac.close();lac=null}if(lst){lst.getTracks().forEach(t=>t.stop());lst=null}$('lv_b').textContent='Start live analysis'}
+$('lv_b').onclick=async()=>{if(ws){stopLive();return}const o=$('lv_o'),s=$('lv_s');o.innerHTML='';
+ try{lst=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){s.textContent='Microphone permission denied.';return}
+ lac=new AudioContext();const sock=new WebSocket(API.replace(/^http/,'ws')+'/ws/live');ws=sock;
+ sock.onopen=()=>{sock.send(JSON.stringify({token:TOK,sample_rate:lac.sampleRate}));const src=lac.createMediaStreamSource(lst),p=lac.createScriptProcessor(4096,1,1);
+  p.onaudioprocess=e=>{const d=e.inputBuffer.getChannelData(0),b=new Int16Array(d.length);for(let i=0;i<d.length;i++)b[i]=Math.max(-1,Math.min(1,d[i]))*32767;sock.readyState==1&&sock.send(b.buffer)};src.connect(p);p.connect(lac.destination);$('lv_b').textContent='Stop live analysis';s.textContent='Listening… results appear every second after the first 2 s.'};
+ sock.onmessage=e=>{const j=JSON.parse(e.data);
+  if(j.type=='error'){s.textContent=j.detail;stopLive()}
+  if(j.type=='window'){const w=j.window;o.innerHTML=`<div style="color:${LC[w.label]}">${esc(w.clock)} ${esc(w.label)}${w.no_speech?' (no speech)':''} · ${pc(w.p_synthetic)} synthetic</div>`+o.innerHTML;s.textContent='Running: '+j.running.label+' · '+pc(j.running.p_synthetic)}
+  if(j.type=='final'){s.textContent=j.summary?'Finished: '+j.summary.label:(j.note||'');if(j.summary)o.innerHTML=`<a href="#/result/${esc(j.id)}" style="color:var(--a2)">Open full result</a>`+'<br>'+o.innerHTML}};
+ sock.onclose=()=>{if(ws===sock)ws=null;$('lv_b').textContent='Start live analysis';if(lac){lac.close();lac=null}if(lst){lst.getTracks().forEach(t=>t.stop());lst=null}}};
+// ---------- start ----------
+(async()=>{if(TOK){try{ME=await api('/auth/me')}catch(e){}}nav();route()})();
+})();
+</script></body></html>
