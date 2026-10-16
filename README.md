@@ -1,49 +1,187 @@
-# AV-ASOC backend
 
-FastAPI server for AI-Driven Deepfake Voice & Audio Anti-Spoofing Operation Centre: accounts, database, background analysis jobs, live WebSocket analysis, model registry, and the web app (served at `/`).
+<div align="center">
 
-**There is no demo mode.** The detector is a PyTorch model you train and register. Until one is registered, `POST /analyses` accepts the upload and the job fails with a clear message instead of producing a made-up score.
+# 🛡️ AI-Driven Deepfake Voice & Audio Anti-Spoofing Operations Center (AV-ASOC)
 
-## Quick start
-```bash
-python -m venv .venv && source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env                                         # set AVASOC_SECRET (python -c "import secrets;print(secrets.token_urlsafe(48))")
-export $(grep -v '^#' .env | sed 's/ *#.*//' | xargs)       # or set the variables your own way; AVASOC_ENV=dev for local play
-python tests/test_all.py                                     # self-checks, no server needed
-uvicorn app.main:app --host 127.0.0.1 --port 8000            # open http://127.0.0.1:8000
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-005571?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org/)
+
+*An enterprise-grade, real-time synthetic voice detection and threat mitigation platform.*
+
+</div>
+
+---
+
+## 👥 Project Team & Mentorship
+
+```mermaid
+graph TD
+    A[Project: AV-ASOC] --> B[Mentor: Aarshi Gupta]
+    A --> C[Core Development Team]
+    C --> D1[Kumar Sambhava]
+    C --> D2[Vaishnavi Verma]
+    C --> D3[Umang Sudharshan]
+    C --> D4[Ashutosh Yadav]
+
 ```
-Behind a reverse proxy add `--proxy-headers --forwarded-allow-ips=<proxy ip>` so rate limits see real client IPs, and terminate HTTPS at the proxy. Run **one** worker: rate limits and live-session counts are in process memory.
 
-## Get a working detector
-1. Get labelled data: genuine speech and spoofed speech (for example the ASVspoof 2019 LA corpus, WaveFake, or In-the-Wild). Lay it out as `corpus/bonafide/**.wav|flac` and `corpus/spoof/**.wav|flac`, or pass an ASVspoof-style protocol file.
-2. Train: `python -m app.ml.train --data corpus --out models/spoofnet-v1.pt --epochs 30` (add `--multiclass` with `corpus/spoof/<SYSTEM>/…` folders to also learn source attribution).
-3. Register: `python -m app.ml.register models/spoofnet-v1.pt --name spoofnet --version 1 --validated`
-4. Check: `GET /system/status` shows the model, then `python scripts/smoke_client.py http://127.0.0.1:8000 some.wav`.
+---
 
-Be honest with yourself about accuracy: the EER printed by training comes from a held-out split of the same corpus. It does not show the model works on unseen generators, phone codecs, other languages or noisy rooms. Evaluate on a different dataset before trusting results. The registry stores `validated` and the metrics, and the UI shows them.
+## 📌 1. Project Overview
 
-## What it does
-`decode + validate (magic bytes, size) -> 16 kHz mono -> clip-level speech activity -> 2 s windows / 1 s hop (sliding window) -> log-mel -> model (calibrated by temperature scaling) -> speech-weighted temporal aggregation -> confidence, risk -> alerts (heap), timeline (merge sort), evidence (frequency-band occlusion), voice profile, source candidates, transcript + keyword context (Trie + KMP)`. Data structures live in `app/dsa.py`.
+* **Project Title:** AI-Driven Deepfake Voice & Audio Anti-Spoofing Operations Center (AV-ASOC)
+* **Team Members:** Kumar Sambhava, Vaishnavi Verma, Umang Sudharshan, Ashutosh Yadav
+* **Technology Stack:** Python, FastAPI, Uvicorn, PyTorch, TorchAudio, Librosa, SoundFile, Pydantic, Git, GitHub
+* **Project Guide/Mentor:** Aarshi Gupta
+* **Project Objective:** To build a robust, FastAPI-based backend and web platform capable of detecting synthetic or AI-generated voice deepfakes in real-time. The system utilizes a sliding window approach for granular audio analysis across timelines, providing secure and reliable verification to combat audio spoofing and voice cloning threats.
 
-## API (full interactive docs at /docs)
-| Area | Endpoints |
-|---|---|
-| Accounts | `POST /auth/signup` `/auth/login` `/auth/forgot-password` `/auth/reset-password` `/auth/change-password`, `GET /auth/me`, `DELETE /account` |
-| Profile | `GET/PATCH /profile` (name, settings: retention_hours, store_audio, window_s, hop_s, uncertain_low/high, transcript) |
-| Analyses | `POST /analyses` (multipart `file`) -> 202; `GET /analyses` (q, label, status, sort, order, limit, offset); `GET/DELETE /analyses/{id}` |
-| Result parts | `/windows` `/windows/at?t=` `/waveform` `/spectrogram` `/audio` `/evidence` `/voice-profile` `/source` `/transcript` `/context` (GET, POST keywords) `/risk` `/timeline` `/alerts`; `PATCH /alerts/{id}`; `GET /compare?a=&b=` |
-| Saved | `POST/GET /saved`, `PATCH/DELETE /saved/{id}`, `POST /saved/{id}/notes`, `DELETE /notes/{id}` |
-| System | `GET /models`, `GET /system/status`, `GET /health`, `WS /ws/live` |
+---
 
-Live protocol: send `{"token": "...", "sample_rate": 48000}`, then binary int16 mono chunks; receive `window` messages; send text `stop` for `final`. Live audio is never stored.
+## ⚠️ 2. Problem Statement
 
-## Security and privacy
-PBKDF2-SHA256 passwords (600k iterations), signed expiring tokens with a version that is bumped on password change/reset, login timing equalised, generic errors, rate limits on auth/upload, upload sniffing by magic bytes (filenames never touch paths), parameterised SQL with whitelisted sort columns, every query scoped by `user_id`, model files verified by SHA-256 and loaded with `weights_only`, CSP + `nosniff` headers, secrets only from the environment. Raw audio is kept only if `store_audio` is on, for `retention_hours` (default 24, purged every 10 min); derived scores, waveform peaks and the spectrogram stay until the user deletes the analysis. Deleting an account removes all of it. The browser keeps the session token in `localStorage`; the CSP limits script sources, but any XSS would expose it.
+With the rapid advancements in generative AI and text-to-speech (TTS) technologies like ElevenLabs, creating hyper-realistic voice clones has become alarmingly easy. These synthesized voices pose severe cybersecurity threats, including voice phishing (vishing), financial fraud, identity theft, and unauthorized access to secure systems. There is an urgent need for an automated anti-spoofing detection system that can reliably distinguish between genuine human speech (bonafide) and AI-generated voice spoofs from audio uploads.
 
-## What has and has not been verified
-Verified by running code: password/token/rate-limit/upload checks, database schema and per-user isolation, retention purge, the full pipeline (with a test double standing in for the model), speech-activity detection, keyword context, all data structures (`python tests/test_all.py`).
-**Not run in the environment this was written in:** the FastAPI routes, WebSocket, PyTorch model/training/provider, faster-whisper, SMTP, and the web app in a browser (JavaScript was only syntax-checked). Expect to fix small things on first run; `scripts/smoke_client.py` is the quickest way to find them.
+---
 
-## Not included
-Google sign-in (needs your OAuth credentials), a trained model, a settings/compare/saved/models/system/profile UI (the API for all of them exists; the web app currently has landing, sign-in, analyzer, history and result pages), multi-node scaling (SQLite, in-process jobs and rate limits), refresh tokens. Jobs interrupted by a restart are marked failed.
+## ⚡ 3. Core Features
+
+* **Sliding Window Audio Analysis:** Automatically segments audio streams or files into manageable temporal windows to evaluate risk scores and detect localized spoofing artifacts.
+* **Dual-Provider Architecture:** Supports seamless switching between deep learning model inference (PyTorch checkpoints) and a rule-based heuristic "demo" provider for reliable local development and presentations.
+* **High-Performance REST API:** Built with FastAPI and Uvicorn to handle asynchronous audio validation, strict format requirements (e.g., 16kHz PCM WAV), and structured JSON responses.
+* **Interactive Documentation:** Out-of-the-box Swagger UI integration (`/docs`) for easy endpoint visualization, testing, and client integration.
+
+---
+
+## 🛠️ 4. Technology Stack
+
+```mermaid
+graph LR
+    subgraph Frontend / Client
+        UI[Swagger UI / Client]
+    end
+
+    subgraph Backend Core
+        API[FastAPI Router] --> Val[Pydantic Validation]
+        API --> Uvi[Uvicorn ASGI Server]
+    end
+
+    subgraph ML & Processing Engine
+        Engine[Audio Pipeline] --> Lib[Librosa & SoundFile]
+        Engine --> PT[PyTorch / TorchAudio]
+        Engine --> Heur[Heuristic / Demo Provider]
+    end
+
+    UI --> API
+    API --> Engine
+
+```
+
+* **Backend Framework:** Python (v3.10+), FastAPI, Uvicorn, Pydantic
+* **Machine Learning & Audio Processing:** PyTorch, TorchAudio, Librosa, SoundFile
+* **Environment & Dependency Management:** Virtual Environment (`venv`), `pip`
+* **Version Control & Collaboration:** Git, GitHub
+
+---
+
+## 📂 5. Project Structure
+
+```text
+avasoc-backend/
+│
+├── app/
+│   ├── main.py              # FastAPI application entry point and routing
+│   ├── ml/                  # ML models, sliding window logic, and detection providers
+│   └── core/                # Configuration and environment management
+│
+├── venv/                    # Python virtual environment
+├── requirements.txt         # Project dependencies
+├── README.md                # Project documentation
+└── .env                     # Environment variables configuration
+
+```
+
+---
+
+## 🚀 6. Installation and Execution
+
+Follow these steps to set up and run the project locally using PowerShell:
+
+1. **Clone the repository and navigate to the project folder:**
+```powershell
+cd "C:\Users\ROG\Desktop\AV ASOC\avasoc-backend"
+
+```
+
+
+2. **Create and activate a Python virtual environment:**
+```powershell
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+
+```
+
+
+3. **Install project dependencies:**
+```powershell
+pip install -r requirements.txt
+
+```
+
+
+4. **Configure environment variables and start the FastAPI server:**
+```powershell
+$env:AVASOC_ENV="dev"
+$env:AVASOC_DETECTION_PROVIDER="demo"
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+
+```
+
+
+5. **Access the Application:**
+* Open your browser and go to `http://127.0.0.1:8000` or view the interactive API documentation at `http://127.0.0.1:8000/docs`.
+
+
+
+---
+
+## 📊 7. Screenshots / Output
+
+*(Add screenshots of your FastAPI Swagger UI documentation, audio upload dashboard, and JSON risk assessment response here.)*
+
+---
+
+## 🧠 8. DSA Concepts Used
+
+| DSA / Algorithm | Where Used | Purpose |
+| --- | --- | --- |
+| **Sliding Window** | Audio stream segmentation | Process continuous audio in fixed-size frames for continuous inference. |
+| **Priority Queue / Min-Max Heap** | Alert/event management | Prioritize high-risk audio windows or incidents by anomaly confidence. |
+| **Trie** | Fraud-script keyword detection | Fast prefix-based matching for configured phrases/keywords. |
+| **String Matching** | Transcript analysis | Find suspicious phrases efficiently in transcribed speech. |
+| **Queue / Deque** | Audio/event buffering | Maintain ordered stream chunks and manage recent events. |
+| **HashMap / Dictionary** | Session and model registry | $O(1)$-average lookup for sessions, model IDs, configuration, and metadata. |
+| **Sorting** | Incident/timeline views | Order events by confidence, time, or severity. |
+| **Graph (optional)** | Campaign/relationship analysis | Represent relationships among sessions, identities, etc. |
+
+---
+
+## 🎓 9. Learning Outcomes
+
+* Gained hands-on experience in building asynchronous, high-performance web backends using **FastAPI** and **Uvicorn**.
+* Mastered audio signal processing workflows and feature manipulation using **Librosa**, **TorchAudio**, and **PyTorch**.
+* Learned how to design modular software architectures that support dual execution modes (heuristic fallback vs. deep learning inference).
+* Enhanced skills in environment configuration and virtual environment management.
+
+---
+
+## 🔮 10. Future Scope
+
+* Integration of advanced state-of-the-art transformer-based deepfake detection models.
+* Support for real-time microphone stream analysis via WebSockets.
+* Expansion of frontend web dashboards for visual waveform and score timeline rendering.
+* Implementation of automated containerization using Docker and Kubernetes.
+
+```
+
+```
